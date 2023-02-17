@@ -4,6 +4,7 @@ import Board exposing (Board)
 import Browser
 import Html exposing (Html)
 import Html.Attributes as Attributes
+import Html.Events as Events
 import Player exposing (Player, next)
 import Space exposing (Space)
 import Svg exposing (Svg)
@@ -14,6 +15,8 @@ import Svg.Events
 type alias Model =
     { board : Board Space
     , state : GameState
+    , boardSize : Int
+    , winningVariations : List (List ( Int, Int ))
     }
 
 
@@ -34,48 +37,118 @@ stateToPlayer state =
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        board =
-            Board.new 3 3
-                |> Board.insert ( 0, 0 ) Space.empty
-                |> Board.insert ( 0, 1 ) Space.empty
-                |> Board.insert ( 0, 2 ) Space.empty
-                |> Board.insert ( 1, 0 ) Space.empty
-                |> Board.insert ( 1, 1 ) Space.empty
-                |> Board.insert ( 1, 2 ) Space.empty
-                |> Board.insert ( 2, 0 ) Space.empty
-                |> Board.insert ( 2, 1 ) Space.empty
-                |> Board.insert ( 2, 2 ) Space.empty
-    in
-    ( { board = board
+    ( { board = createBoard 3
       , state = Turn Player.one
+      , boardSize = 3
+      , winningVariations = winningVariations (createBoard 3)
       }
     , Cmd.none
     )
 
 
+createBoard : Int -> Board Space
+createBoard boardSize =
+    List.range 0 (boardSize - 1)
+        |> List.map
+            (\h ->
+                List.range 0 (boardSize - 1)
+                    |> List.map (\w -> ( h, w ))
+            )
+        |> List.concat
+        |> List.foldl (\tuple -> Board.insert tuple Space.empty) (Board.new boardSize boardSize)
+
+
 type Msg
     = ClickedSpace ( Int, Int ) Player
+    | InputtedBoardSize (Maybe Int)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedSpace spaceLoc player ->
-            ( case Board.get spaceLoc model.board of
-                Just space ->
-                    if space == Space.empty then
-                        { model
-                            | board = Board.insert spaceLoc (Space.filled player) model.board
-                            , state = Turn (next player)
-                        }
-
-                    else
-                        model
+            ( case updateBoard spaceLoc player model.board of
+                Just board ->
+                    -- legal move
+                    { model
+                        | board = board
+                        , state = Turn (next player)
+                    }
 
                 Nothing ->
+                    -- illegal move
                     model
             , Cmd.none
+            )
+
+        InputtedBoardSize (Just newSize) ->
+            ( { model
+                | board = createBoard newSize
+                , boardSize = newSize
+              }
+            , Cmd.none
+            )
+
+        InputtedBoardSize Nothing ->
+            -- ignore
+            ( model, Cmd.none )
+
+
+updateBoard : ( Int, Int ) -> Player -> Board Space -> Maybe (Board Space)
+updateBoard spaceLoc player board =
+    Board.get spaceLoc board
+        |> Maybe.andThen
+            (\space ->
+                if space == Space.empty then
+                    Just <| Board.insert spaceLoc (Space.filled player) board
+
+                else
+                    Nothing
+            )
+
+
+calcWinner : Board Space -> Player
+calcWinner board =
+    Board.toList board
+        |> (\_ -> Player.one)
+
+
+winningVariations : Board Space -> List (List ( Int, Int ))
+winningVariations board =
+    -- interesting notes
+    -- boardSize * 2 + 2 = number of possible winning iterations
+    -- example for a board size of 3
+    --
+    -- (0,0)(1,0)(2,0)
+    -- (0,1)(1,1)(2,1)
+    -- (0,2)(1,2)(2,2)
+    -- (0,0)(0,1)(0,2)
+    -- (1,0)(1,1)(1,2)
+    -- (2,0)(2,1)(2,2)
+    -- (0,0)(1,1)(2,2)
+    -- (0,2)(1,1)(2,0)
+    let
+        boardSize =
+            Board.height board - 1
+
+        winningRows =
+            List.range 0 boardSize |> List.map (\h -> List.range 0 boardSize |> List.map (\w -> ( w, h )))
+
+        winningColumns =
+            List.range 0 boardSize |> List.map (\h -> List.range 0 boardSize |> List.map (\w -> ( h, w )))
+
+        downRightDiagWin =
+            List.range 0 boardSize |> List.map (\h -> List.range h h |> List.map (\w -> ( h, w ))) |> List.concat
+
+        upRightDiagWin =
+            List.range 0 boardSize |> List.map (\h -> List.range (boardSize - h) (boardSize - h) |> List.map (\w -> ( h, w ))) |> List.concat
+    in
+    [ downRightDiagWin, upRightDiagWin ]
+        |> List.append
+            (List.concat
+                [ winningRows
+                , winningColumns
+                ]
             )
 
 
@@ -83,6 +156,15 @@ view : Model -> Html Msg
 view model =
     Html.div [ Attributes.class "flex flex-col items-center h-full w-full" ]
         [ Html.h1 [ Attributes.class "text-4xl font-bold text-blue-500" ] [ Html.text "Bizz Bazz Buzz" ]
+        , Html.input
+            [ Attributes.type_ "range"
+            , Attributes.min "0"
+            , Attributes.max "10"
+            , Attributes.step "1"
+            , Events.onInput (InputtedBoardSize << String.toInt)
+            , Attributes.value (String.fromInt model.boardSize)
+            ]
+            []
         , Html.div [] [ Html.text (Player.toString (stateToPlayer model.state)) ]
         , Html.div [] [ viewBoard model ]
         ]
@@ -91,7 +173,7 @@ view model =
 viewBoard : Model -> Html Msg
 viewBoard model =
     let
-        ( height, width ) =
+        ( boardHieght, boardWidth ) =
             ( String.fromInt (Board.height model.board * Space.size)
             , String.fromInt (Board.width model.board * Space.size)
             )
@@ -102,7 +184,7 @@ viewBoard model =
     allSpaces
         |> List.map (viewSpace model)
         |> Svg.svg
-            [ [ "0", "0", height, width ]
+            [ [ "0", "0", boardHieght, boardWidth ]
                 |> String.join " "
                 |> Svg.Attributes.viewBox
             , Svg.Attributes.width "100%"
