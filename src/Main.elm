@@ -35,6 +35,16 @@ stateToPlayer state =
             player
 
 
+isDone : GameState -> Bool
+isDone state =
+    case state of
+        Turn _ ->
+            False
+
+        Done _ ->
+            True
+
+
 init : ( Model, Cmd Msg )
 init =
     let
@@ -72,26 +82,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedSpace spaceLoc player ->
-            ( case updateBoard spaceLoc player model.board of
-                Just board ->
-                    -- legal move
-                    if didPlayerWin board model.winningVariations player then
-                        { model
-                            | board = board
-                            , state = Done player
-                        }
-
-                    else
-                        { model
-                            | board = board
-                            , state = Turn (next player)
-                        }
-
-                Nothing ->
-                    -- illegal move
-                    model
-            , Cmd.none
-            )
+            clickedSpace model spaceLoc player
 
         InputtedBoardSize (Just newSize) ->
             let
@@ -101,6 +92,7 @@ update msg model =
             ( { model
                 | board = board
                 , boardSize = newSize
+                , state = Turn Player.one
                 , winningVariations = winningVariations board
               }
             , Cmd.none
@@ -121,6 +113,34 @@ update msg model =
               }
             , Cmd.none
             )
+
+
+clickedSpace : Model -> ( Int, Int ) -> Player -> ( Model, Cmd Msg )
+clickedSpace model spaceLoc player =
+    if isDone model.state then
+        ( model, Cmd.none )
+
+    else
+        ( case updateBoard spaceLoc player model.board of
+            Just board ->
+                -- legal move
+                if didPlayerWin board model.winningVariations player then
+                    { model
+                        | board = board
+                        , state = Done player
+                    }
+
+                else
+                    { model
+                        | board = board
+                        , state = Turn (next player)
+                    }
+
+            Nothing ->
+                -- illegal move
+                model
+        , Cmd.none
+        )
 
 
 updateBoard : ( Int, Int ) -> Player -> Board Space -> Maybe (Board Space)
@@ -210,34 +230,40 @@ didPlayerWin board winningVars player =
 
 view : Model -> Html Msg
 view model =
-    Html.div [ Attributes.class "flex flex-col items-center h-full w-full" ]
+    let
+        player =
+            stateToPlayer model.state
+    in
+    Html.div [ Attributes.class "flex flex-col items-center h-full w-full space-y-4" ]
         [ Html.h1 [ Attributes.class "text-4xl font-bold text-blue-500" ] [ Html.text "Bizz Bazz Buzz" ]
-        , Html.div [ Attributes.class "flex flex-col" ]
-            [ Html.span [] [ Html.text (String.fromInt model.boardSize ++ " in a row to win") ]
-            , Html.input
-                [ Attributes.type_ "range"
-                , Attributes.min "1"
-                , Attributes.max "10"
-                , Attributes.step "1"
-                , Events.onInput (InputtedBoardSize << String.toInt)
-                , Attributes.value (String.fromInt model.boardSize)
-                ]
-                []
-            ]
-        , case model.state of
-            Turn player ->
-                Html.div []
-                    [ Html.div [] [ Html.text (Player.toString player ++ "'s turn") ]
-                    , Html.div [] [ viewBoard model ]
-                    ]
+        , Html.div [ Attributes.class "flex flex-col space-y-2" ]
+            [ Html.div [ Attributes.class "relative" ]
+                [ if isDone model.state then
+                    winnerOverlay player
 
-            Done player ->
-                Html.div [] [ Html.text (Player.toString player ++ " WINS") ]
-        , Html.button
-            [ Events.onClick ClickedRestart
-            , Attributes.class "border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-md"
+                  else
+                    Html.text ""
+                , Html.div [] [ viewBoard model ]
+                ]
+            , Html.span [] [ Html.text (Player.toString player ++ "'s turn") ]
+            , Html.div [ Attributes.class "flex flex-col" ]
+                [ Html.span [] [ Html.text (String.fromInt model.boardSize ++ " in a row to win") ]
+                , Html.input
+                    [ Attributes.type_ "range"
+                    , Attributes.min "1"
+                    , Attributes.max "10"
+                    , Attributes.step "1"
+                    , Events.onInput (InputtedBoardSize << String.toInt)
+                    , Attributes.value (String.fromInt model.boardSize)
+                    ]
+                    []
+                ]
+            , Html.button
+                [ Events.onClick ClickedRestart
+                , Attributes.class "border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-md"
+                ]
+                [ Html.text "RESTART GAME" ]
             ]
-            [ Html.text "RESET" ]
         ]
 
 
@@ -279,6 +305,14 @@ viewSpace model (( x, y ) as spaceLoc) =
         , Svg.Events.onClick (ClickedSpace spaceLoc (stateToPlayer model.state))
         ]
         []
+
+
+winnerOverlay : Player -> Html Msg
+winnerOverlay player =
+    Html.div
+        [ Attributes.class "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-2xl whitespace-nowrap"
+        ]
+        [ Html.text (Player.toString player ++ " WINS!") ]
 
 
 main : Program () Model Msg
