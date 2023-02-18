@@ -65,6 +65,7 @@ createBoard boardSize =
 type Msg
     = ClickedSpace ( Int, Int ) Player
     | InputtedBoardSize (Maybe Int)
+    | ClickedRestart
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -108,6 +109,18 @@ update msg model =
         InputtedBoardSize Nothing ->
             -- ignore
             ( model, Cmd.none )
+
+        ClickedRestart ->
+            let
+                board =
+                    createBoard model.boardSize
+            in
+            ( { model
+                | board = board
+                , state = Turn Player.one
+              }
+            , Cmd.none
+            )
 
 
 updateBoard : ( Int, Int ) -> Player -> Board Space -> Maybe (Board Space)
@@ -233,6 +246,11 @@ view model =
             , Attributes.value (String.fromInt model.boardSize)
             ]
             []
+        , Html.button
+            [ Events.onClick ClickedRestart
+            , Attributes.class "border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-md"
+            ]
+            [ Html.text "RESET" ]
         , case model.state of
             Turn player ->
                 Html.div []
