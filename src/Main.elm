@@ -136,12 +136,6 @@ updateBoard spaceLoc player board =
             )
 
 
-calcWinner : Board Space -> Player
-calcWinner board =
-    Board.toList board
-        |> (\_ -> Player.one)
-
-
 winningVariations : Board Space -> List (List ( Int, Int ))
 winningVariations board =
     -- interesting notes
@@ -214,52 +208,36 @@ didPlayerWin board winningVars player =
         |> List.any identity
 
 
-playerTwoWinner : Model -> Bool
-playerTwoWinner model =
-    let
-        twoLocs =
-            playerLocs model.board Player.two
-    in
-    model.winningVariations
-        |> List.map
-            (\winningSpaces ->
-                List.foldl
-                    (\winningSpace hasWinningLocs ->
-                        hasWinningLocs && List.member winningSpace twoLocs
-                    )
-                    True
-                    winningSpaces
-            )
-        |> List.any identity
-
-
 view : Model -> Html Msg
 view model =
     Html.div [ Attributes.class "flex flex-col items-center h-full w-full" ]
         [ Html.h1 [ Attributes.class "text-4xl font-bold text-blue-500" ] [ Html.text "Bizz Bazz Buzz" ]
-        , Html.input
-            [ Attributes.type_ "range"
-            , Attributes.min "0"
-            , Attributes.max "10"
-            , Attributes.step "1"
-            , Events.onInput (InputtedBoardSize << String.toInt)
-            , Attributes.value (String.fromInt model.boardSize)
+        , Html.div [ Attributes.class "flex flex-col" ]
+            [ Html.span [] [ Html.text (String.fromInt model.boardSize ++ " in a row to win") ]
+            , Html.input
+                [ Attributes.type_ "range"
+                , Attributes.min "1"
+                , Attributes.max "10"
+                , Attributes.step "1"
+                , Events.onInput (InputtedBoardSize << String.toInt)
+                , Attributes.value (String.fromInt model.boardSize)
+                ]
+                []
             ]
-            []
+        , case model.state of
+            Turn player ->
+                Html.div []
+                    [ Html.div [] [ Html.text (Player.toString player ++ "'s turn") ]
+                    , Html.div [] [ viewBoard model ]
+                    ]
+
+            Done player ->
+                Html.div [] [ Html.text (Player.toString player ++ " WINS") ]
         , Html.button
             [ Events.onClick ClickedRestart
             , Attributes.class "border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-md"
             ]
             [ Html.text "RESET" ]
-        , case model.state of
-            Turn player ->
-                Html.div []
-                    [ Html.div [] [ Html.text (Player.toString (stateToPlayer model.state)) ]
-                    , Html.div [] [ viewBoard model ]
-                    ]
-
-            Done player ->
-                Html.div [] [ Html.text "WINNER" ]
         ]
 
 
@@ -310,44 +288,8 @@ main =
         , update = update
         , view =
             \model ->
-                { title = "elm-template"
+                { title = "BIZZ BAZZ BUZZ"
                 , body = [ view model ]
                 }
         , subscriptions = \_ -> Sub.none
         }
-
-
-
--- TEST ONLY
-
-
-fakeBoard : Svg Msg
-fakeBoard =
-    Svg.svg
-        [ Svg.Attributes.viewBox "0 0 3 3"
-        , Svg.Attributes.width "100%"
-        , Svg.Attributes.height "100%"
-        ]
-        [ fakeCell ( 0, 0 )
-        , fakeCell ( 0, 1 )
-        , fakeCell ( 0, 2 )
-        , fakeCell ( 1, 0 )
-        , fakeCell ( 1, 1 )
-        , fakeCell ( 1, 2 )
-        , fakeCell ( 2, 0 )
-        , fakeCell ( 2, 1 )
-        , fakeCell ( 2, 2 )
-        ]
-
-
-fakeCell : ( Int, Int ) -> Svg Msg
-fakeCell ( x, y ) =
-    Svg.rect
-        [ Svg.Attributes.height "1"
-        , Svg.Attributes.width "1"
-        , Svg.Attributes.strokeWidth ".1%"
-        , Svg.Attributes.x (String.fromInt x)
-        , Svg.Attributes.y (String.fromInt y)
-        , Svg.Attributes.class "fill-amber-100 stroke-zinc-500"
-        ]
-        []
