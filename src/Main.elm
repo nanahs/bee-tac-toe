@@ -37,10 +37,14 @@ stateToPlayer state =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { board = createBoard 3
+    let
+        board =
+            createBoard 3
+    in
+    ( { board = board
       , state = Turn Player.one
       , boardSize = 3
-      , winningVariations = winningVariations (createBoard 3)
+      , winningVariations = winningVariations board
       }
     , Cmd.none
     )
@@ -70,10 +74,17 @@ update msg model =
             ( case updateBoard spaceLoc player model.board of
                 Just board ->
                     -- legal move
-                    { model
-                        | board = board
-                        , state = Turn (next player)
-                    }
+                    if didPlayerWin board model.winningVariations player then
+                        { model
+                            | board = board
+                            , state = Done player
+                        }
+
+                    else
+                        { model
+                            | board = board
+                            , state = Turn (next player)
+                        }
 
                 Nothing ->
                     -- illegal move
@@ -82,9 +93,14 @@ update msg model =
             )
 
         InputtedBoardSize (Just newSize) ->
+            let
+                board =
+                    createBoard newSize
+            in
             ( { model
-                | board = createBoard newSize
+                | board = board
                 , boardSize = newSize
+                , winningVariations = winningVariations board
               }
             , Cmd.none
             )
@@ -152,6 +168,58 @@ winningVariations board =
             )
 
 
+playerLocs : Board Space -> Player -> List ( Int, Int )
+playerLocs board player =
+    board
+        |> Board.toList
+        |> List.filterMap
+            (\( spaceLoc, space ) ->
+                if Space.player space == Just player then
+                    Just spaceLoc
+
+                else
+                    Nothing
+            )
+
+
+didPlayerWin : Board Space -> List (List ( Int, Int )) -> Player -> Bool
+didPlayerWin board winningVars player =
+    let
+        oneLocs =
+            playerLocs board player
+    in
+    winningVars
+        |> List.map
+            (\winningSpaces ->
+                List.foldl
+                    (\winningSpace hasWinningLocs ->
+                        hasWinningLocs && List.member winningSpace oneLocs
+                    )
+                    True
+                    winningSpaces
+            )
+        |> List.any identity
+
+
+playerTwoWinner : Model -> Bool
+playerTwoWinner model =
+    let
+        twoLocs =
+            playerLocs model.board Player.two
+    in
+    model.winningVariations
+        |> List.map
+            (\winningSpaces ->
+                List.foldl
+                    (\winningSpace hasWinningLocs ->
+                        hasWinningLocs && List.member winningSpace twoLocs
+                    )
+                    True
+                    winningSpaces
+            )
+        |> List.any identity
+
+
 view : Model -> Html Msg
 view model =
     Html.div [ Attributes.class "flex flex-col items-center h-full w-full" ]
@@ -165,8 +233,15 @@ view model =
             , Attributes.value (String.fromInt model.boardSize)
             ]
             []
-        , Html.div [] [ Html.text (Player.toString (stateToPlayer model.state)) ]
-        , Html.div [] [ viewBoard model ]
+        , case model.state of
+            Turn player ->
+                Html.div []
+                    [ Html.div [] [ Html.text (Player.toString (stateToPlayer model.state)) ]
+                    , Html.div [] [ viewBoard model ]
+                    ]
+
+            Done player ->
+                Html.div [] [ Html.text "WINNER" ]
         ]
 
 

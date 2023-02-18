@@ -1,4 +1,4 @@
-module Space exposing (Space, color, empty, filled, size)
+module Space exposing (Space, color, empty, filled, player, size)
 
 import Player exposing (Player)
 
@@ -22,8 +22,8 @@ color (Space space) =
         Empty ->
             "fill-amber-100 stroke-zinc-500"
 
-        Filled player ->
-            if player == Player.one then
+        Filled player_ ->
+            if player_ == Player.one then
                 "fill-lime-100 stroke-zinc-500"
 
             else
@@ -41,5 +41,15 @@ empty =
 
 
 filled : Player -> Space
-filled player =
-    Space { state = Filled player }
+filled player_ =
+    Space { state = Filled player_ }
+
+
+player : Space -> Maybe Player
+player (Space space) =
+    case space.state of
+        Empty ->
+            Nothing
+
+        Filled p ->
+            Just p
