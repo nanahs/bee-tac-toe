@@ -5,6 +5,7 @@ import Browser
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
+import Images
 import Player exposing (Player, next)
 import Space exposing (Space)
 import Svg exposing (Svg)
@@ -291,20 +292,42 @@ viewBoard model =
 
 viewSpace : Model -> ( Int, Int ) -> Svg Msg
 viewSpace model (( x, y ) as spaceLoc) =
-    Svg.rect
-        [ Svg.Attributes.height (String.fromInt Space.size)
-        , Svg.Attributes.width (String.fromInt Space.size)
-        , Svg.Attributes.strokeWidth ".1%"
-        , Svg.Attributes.x (String.fromInt (x * Space.size))
-        , Svg.Attributes.y (String.fromInt (y * Space.size))
-        , model.board
-            |> Board.get spaceLoc
-            |> Maybe.map Space.color
-            |> Maybe.withDefault (Space.color Space.empty)
-            |> Svg.Attributes.class
-        , Svg.Events.onClick (ClickedSpace spaceLoc (stateToPlayer model.state))
+    Svg.g
+        [ Svg.Attributes.strokeWidth ".1%"
+        , Svg.Attributes.class (Space.color Space.empty)
         ]
-        []
+        [ Svg.rect
+            [ Svg.Attributes.height (String.fromInt Space.size)
+            , Svg.Attributes.width (String.fromInt Space.size)
+            , Svg.Attributes.x (String.fromInt (x * Space.size))
+            , Svg.Attributes.y (String.fromInt (y * Space.size))
+            , Svg.Events.onClick (ClickedSpace spaceLoc (stateToPlayer model.state))
+            ]
+            []
+        , Svg.svg
+            [ Svg.Attributes.height (String.fromInt Space.size)
+            , Svg.Attributes.width (String.fromInt Space.size)
+            , Svg.Attributes.x (String.fromInt (x * Space.size))
+            , Svg.Attributes.y (String.fromInt (y * Space.size))
+            ]
+            [ model.board
+                |> Board.get spaceLoc
+                |> Maybe.andThen
+                    (\space ->
+                        space
+                            |> Space.player
+                            |> Maybe.map
+                                (\player ->
+                                    if player == Player.one then
+                                        Images.bee
+
+                                    else
+                                        Images.honeycomb
+                                )
+                    )
+                |> Maybe.withDefault (Svg.g [] [])
+            ]
+        ]
 
 
 winnerOverlay : Player -> Html Msg
