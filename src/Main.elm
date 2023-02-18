@@ -332,10 +332,24 @@ viewSpace model (( x, y ) as spaceLoc) =
 
 winnerOverlay : Player -> Html Msg
 winnerOverlay player =
-    Html.div
-        [ Attributes.class "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-2xl whitespace-nowrap"
+    Html.div [ Attributes.class "absolute inset-0 text-white" ]
+        [ Html.div [ Attributes.class "bg-slate-800 opacity-50 h-full w-full" ] []
+        , Html.div
+            [ Attributes.class "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-2xl whitespace-nowrap"
+            ]
+            [ if player == Player.one then
+                Html.div []
+                    [ Html.div [] [ Html.text "UN-BEE-LIEVABLE" ]
+                    , Html.div [] [ Html.text (Player.toString player ++ " WINS!") ]
+                    ]
+
+              else
+                Html.div []
+                    [ Html.div [] [ Html.text "SWEET VICTORY" ]
+                    , Html.div [] [ Html.text (Player.toString player ++ " WINS!") ]
+                    ]
+            ]
         ]
-        [ Html.text (Player.toString player ++ " WINS!") ]
 
 
 main : Program () Model Msg
