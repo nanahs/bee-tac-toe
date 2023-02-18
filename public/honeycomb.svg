@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="30.604214mm"
+   height="24.685951mm"
+   viewBox="0 0 30.604214 24.685951"
    version="1.1"
    id="svg3530"
    inkscape:export-filename="honeycomb.svg"
@@ -30,7 +30,8 @@
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     id="layer1">
+     id="layer1"
+     transform="translate(-35.111424,-52.893004)">
     <path
        sodipodi:type="star"
        style="fill:#d4aa00;stroke-width:0.264583"

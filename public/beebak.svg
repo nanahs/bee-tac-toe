@@ -4,9 +4,9 @@
 <svg
    version="1.1"
    id="svg105"
-   width="327.67999"
-   height="327.67999"
-   viewBox="0 0 327.67999 327.67999"
+   width="208.37492"
+   height="230.29614"
+   viewBox="0 0 208.37492 230.29614"
    sodipodi:docname="beebak_body.svg"
    inkscape:export-filename="beebak.svg"
    inkscape:export-xdpi="96"
@@ -31,7 +31,8 @@
   <g
      inkscape:groupmode="layer"
      inkscape:label="Image"
-     id="g111">
+     id="g111"
+     transform="translate(-30.759455,-9.203044)">
     <image
        width="327.67999"
        height="327.67999"
